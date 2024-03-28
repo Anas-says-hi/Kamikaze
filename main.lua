@@ -9,7 +9,7 @@ function love.load()
   player_g = anim8.newGrid(49, 39, player_image:getWidth(), player_image:getHeight())
   player_animation = anim8.newAnimation(player_g('1-7',1), 0.05)
 
-  --enemey spritesheet
+  --enemy spritesheet
   enemy_image = love.graphics.newImage('sprites/enemy.png')
   enemy_g = anim8.newGrid(49, 39, enemy_image:getWidth(), enemy_image:getHeight())
   enemy_animation = anim8.newAnimation(enemy_g('1-7',1), 0.05)
@@ -24,9 +24,12 @@ function love.load()
   bullets = {}
   bulletSpeed = 10
 
+  --enemy bullets
+  enemy_bullets = {}
+
   --enemis
   enemies = {}
-  enemies[1] = {x = 0,y = 0}
+  -- enemies[1] = {x = 0,y = 0, shots = }
 
   explosion = {}
   explosion.x = -200
@@ -39,10 +42,10 @@ function love.load()
   player.maxSpeed = 5
   player.accel = 0.5
   player.friction = 0.08
-  
+
   currTime = love.timer.getTime()
   step = love.timer.getTime() + 2
-
+  enemyBulletTimer = love.timer.getTime() + 1
 end
 
 function love.update(dt)
@@ -52,7 +55,7 @@ function love.update(dt)
 
   if currTime >= step then
     step = love.timer.getTime() + 2
-    table.insert(enemies, {x= math.random(0, (800 - 80)/2), y = -39})
+    table.insert(enemies, {x = math.random(0, (800 - 80)/2), y = -39, shots = 0, bulletTimer = love.timer.getTime() + math.random(0.8,1.4)})
   end
   
   --player movement and controls
@@ -89,33 +92,63 @@ end
 
   player.x = player.speed + player.x
 
-  --enemies
-  for _, enemy in ipairs(enemies) do
-    enemy.y = enemy.y + 1
-  end
+  for _, enemy_bullet in ipairs(enemy_bullets) do
+    enemy_bullet.y = enemy_bullet.y + 5
+    print(enemy_bullet.y)
 
-  --check collision with bullets
-  for _, bullet in ipairs(bullets) do
-    for _, enemy in ipairs(enemies) do
-      if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
-        explosion.x = enemy.x
-        explosion.y = enemy.y
-        exp_animation:gotoFrame(1)
-        exp_animation:resume()
-        exploded = true
+    if CheckCollision(player.x + 13, player.y, 22, 39, enemy_bullet.x, enemy_bullet.y, 1, 10) then
+      explosion.x = enemy_bullet.x
+      explosion.y = enemy_bullet.y
+      exp_animation:gotoFrame(1)
+      exp_animation:resume()
+      table.remove(enemy_bullets, _)
+    end
 
-        table.remove(bullets, _)
-        table.remove(enemies, _)
-      end
+    if(enemy_bullet.y >= 600) then
+      table.remove(enemy_bullets, _)
     end
   end
 
+  --enemies
+  for _, enemy in ipairs(enemies) do
+    enemy.y = enemy.y + 1
 
-  --bullets
+    if love.timer.getTime() > enemy.bulletTimer then
+      enemy.bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
+      table.insert(enemy_bullets, {x = enemy.x + 25, y = enemy.y, width = 1, height = 10})
+    end
+
+    if enemy.y >= 600 then
+      table.remove(enemies, _)
+    end
+  end
+
+    --bullets
+    for _, bullet in ipairs(bullets) do
+      bullet.y = bullet.y - bulletSpeed
+      if(bullet.y < -10) then 
+        table.remove(bullets, _)
+      end
+    end
+
+  --check collision with bullets
+
   for _, bullet in ipairs(bullets) do
-    bullet.y = bullet.y - bulletSpeed
-    if(bullet.y < -10) then 
-      table.remove(bullets, _)
+    for _, enemy in ipairs(enemies) do
+      if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
+        table.remove(bullets, _)
+        enemy.shots = enemy.shots + 0.5
+        -- print(enemy.shots )
+
+        if enemy.shots == 2 then
+          explosion.x = enemy.x
+          explosion.y = enemy.y
+          exp_animation:gotoFrame(1)
+          exp_animation:resume()
+          table.remove(enemies, _)
+        end
+
+      end
     end
   end
 
@@ -123,18 +156,20 @@ end
   player_animation:update(dt)
   enemy_animation:update(dt)
   exp_animation:update(dt)
-  
-
-  -- exp_animation:pauseAtEnd()
 
 end
 
 function love.draw()
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
-
+  
+  player_animation:draw(player_image, player.x, player.y)
   exp_animation:draw(exp_image, explosion.x, explosion.y)
-
+  
+  for _,enemyBullet in ipairs(enemy_bullets) do
+    love.graphics.rectangle("fill", enemyBullet.x, enemyBullet.y, enemyBullet.width, enemyBullet.height)
+  end
+  
   for _, bullet in ipairs(bullets) do
     love.graphics.rectangle("fill", bullet.x, bullet.y, bullet.width, bullet.height)
   end
@@ -142,14 +177,13 @@ function love.draw()
     enemy_animation:draw(enemy_image, enemy.x, enemy.y)
   end
 
-  player_animation:draw(player_image, player.x, player.y)
 end
 
 function tablelength(T)
     local count = 0
     for _ in pairs(T) do count = count + 1 end
     return count
-  end
+end
 
 function love.keypressed(key, scancode, isrepeat)
     if key == "e" or key == "up" then
@@ -157,7 +191,7 @@ function love.keypressed(key, scancode, isrepeat)
     end
  end
 
- function CheckCollision(x1,y1,w1,h1, x2,y2,w2,h2)
+function CheckCollision(x1,y1,w1,h1, x2,y2,w2,h2)
   return x1 < x2+w2 and
          x2 < x1+w1 and
          y1 < y2+h2 and
