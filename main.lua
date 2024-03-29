@@ -4,6 +4,26 @@ anim8 = require 'libs/anim8'
 function love.load()
   love.graphics.setDefaultFilter("nearest", "nearest", 1) 
 
+  --clouds
+  cloud_image = love.graphics.newImage('sprites/cloud1.png')
+  clouds = {
+    {
+      x = math.random(0, (800 - 80)/2),
+      y = math.random(0,200),
+
+    },
+    {
+      x = math.random(0, (800 - 80)/2),
+      y = math.random(0,200)
+    },
+    {
+      x = math.random(0, (800 - 80)/2),
+      y = math.random(0,200)
+    },
+    
+  }
+  cloudTimer = love.timer.getTime() + 3.5
+
   --player spritesheet
   player_image = love.graphics.newImage('sprites/player_spritesheet.png')
   player_g = anim8.newGrid(49, 39, player_image:getWidth(), player_image:getHeight())
@@ -29,7 +49,6 @@ function love.load()
 
   --enemis
   enemies = {}
-  -- enemies[1] = {x = 0,y = 0, shots = }
 
   explosion = {}
   explosion.x = -200
@@ -46,9 +65,23 @@ function love.load()
   currTime = love.timer.getTime()
   step = love.timer.getTime() + 2
   enemyBulletTimer = love.timer.getTime() + 1
+
 end
 
 function love.update(dt)
+  --clouds
+
+  if love.timer.getTime() >= cloudTimer then
+    cloudTimer = love.timer.getTime() + 3.5
+    table.insert(clouds, {x = math.random(0, (800 - 80)/2), y = -100})
+  end
+
+  for _, cloud in ipairs(clouds) do
+    cloud.y = cloud.y + 0.5
+    if cloud.y >= 600 then
+      table.remove(clouds, _)
+    end
+  end
 
   --spawning enrmies
   currTime = love.timer.getTime()
@@ -163,8 +196,16 @@ function love.draw()
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
   
+  for _, cloud in ipairs(clouds) do
+    love.graphics.setColor(1,1,1,0.3)
+    love.graphics.draw(cloud_image, cloud.x, cloud.y)
+  end
+
+  love.graphics.setColor(1,1,1,1)
+  
   player_animation:draw(player_image, player.x, player.y)
   exp_animation:draw(exp_image, explosion.x, explosion.y)
+
   
   for _,enemyBullet in ipairs(enemy_bullets) do
     love.graphics.rectangle("fill", enemyBullet.x, enemyBullet.y, enemyBullet.width, enemyBullet.height)
