@@ -5,6 +5,7 @@ function love.load()
   
 
   bar = love.graphics.newImage('sprites/bar.png')
+  pressX = love.graphics.newImage('sprites/pressX.png')
   font = love.graphics.newImageFont("fonts/font.png",
     " abcdefghijklmnopqrstuvwxyz" ..
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ0" ..
@@ -14,6 +15,10 @@ function love.load()
 
   --ships
   ship_image = love.graphics.newImage('sprites/ship.png')
+  ship_exp_image = love.graphics.newImage('sprites/explosion.png')
+  ship_exp_g = anim8.newGrid(64, 64, exp_image:getWidth(), exp_image:getHeight())
+  ship_exp_animation = anim8.newAnimation(exp_g('1-9',1), 0.07, "pauseAtEnd")
+
   ships = {}
   shipTimer = love.timer.getTime() +2
   --clouds
@@ -87,20 +92,29 @@ function love.load()
 end
 
 function love.update(dt)
-
   -- ships
 
   if love.timer.getTime() >= shipTimer then
     shipTimer = love.timer.getTime() + 2
-    table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = nil})
+    table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = false})
   end
 
 
   for _, ship in ipairs(ships) do
     ship.y = ship.y + 0.5
 
-    if y > 20 and y < 300 - 20 then
+    if ship.y > 20 and ship.y < 200 then
       ship.canBeDestroyed = true
+    else 
+      ship.canBeDestroyed = false
+    end
+  end
+
+  if love.keyboard.isDown("x") then
+    for _, ship in ipairs(ships) do
+      if ship.canBeDestroyed then
+        table.remove(ships, _)
+      end
     end
   end
 
@@ -263,8 +277,12 @@ function love.draw()
     love.graphics.setColor(0.7,0.7,0.7,1)
     love.graphics.draw(ship_image, ship.x, ship.y, 0,0.5)
     love.graphics.setColor(1,1,1,1)
+
+    if ship.canBeDestroyed then
+      love.graphics.draw(pressX, ship.x + 100, ship.y,0, 0.5)
+    end
   end
-  
+
   -- love.graphics.draw(ship_image,50,50)
 
   for _, cloud in ipairs(clouds) do
