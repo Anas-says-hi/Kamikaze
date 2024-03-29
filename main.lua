@@ -5,6 +5,7 @@ function love.load()
   
 
   bar = love.graphics.newImage('sprites/bar.png')
+  font = love.graphics.newFont("fonts/upheavtt.ttf", 50)
   -- ocean = love.graphics.newImage("sprites/ocean.png")
 
 
@@ -79,7 +80,7 @@ function love.load()
   step = love.timer.getTime() + 2
   enemyBulletTimer = love.timer.getTime() + 1
 
-
+  score = 0
 end
 
 function love.update(dt)
@@ -88,7 +89,7 @@ function love.update(dt)
 
   if love.timer.getTime() >= shipTimer then
     shipTimer = love.timer.getTime() + 2
-    table.insert(ships, {x = math.random(60, 100), y = -39})
+    table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5)})
   end
 
 
@@ -211,6 +212,7 @@ end
         enemy.shots = enemy.shots + 0.5
 
         if enemy.shots == 2 then
+          score = score + 10
           explosion.x = enemy.x
           explosion.y = enemy.y
           exp_animation:gotoFrame(1)
@@ -233,6 +235,8 @@ function love.draw()
 
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
+
+  love.graphics.setFont(font)
   -- love.graphics.draw(ocean,0,0)
 
   love.graphics.setColor(1,1,1,1)
@@ -241,13 +245,12 @@ function love.draw()
 
   for _, ship in ipairs(ships) do
     love.graphics.setColor(0,0,0,0.5)
-    love.graphics.rectangle("fill", ship.x + 7, ship.y + 10, 180,22)
+    love.graphics.rectangle("fill", ship.x + 7, ship.y + 10, 180,23, 3)
     love.graphics.setColor(0.7,0.7,0.7,1)
     love.graphics.draw(ship_image, ship.x, ship.y, 0,0.5)
-    -- love.graphics.draw(ship_image, ship.x, ship.y, 0,0.5)
     love.graphics.setColor(1,1,1,1)
-
   end
+  
   -- love.graphics.draw(ship_image,50,50)
 
   for _, cloud in ipairs(clouds) do
@@ -286,6 +289,9 @@ function love.draw()
     love.graphics.rectangle("fill", bullet.x, bullet.y, bullet.width, bullet.height)
   end
 love.graphics.setColor(1,1,1,1)
+
+love.graphics.print(score, 10, 300 - 50)
+
 
   -- love.graphics.draw(rainbow, 0, 0, 0, love.graphics.getDimensions())
 
