@@ -1,28 +1,35 @@
 anim8 = require 'libs/anim8'
 
-
 function love.load()
-  love.graphics.setDefaultFilter("nearest", "nearest", 1) 
+  love.graphics.setDefaultFilter("nearest", "nearest", 1)
+  
 
+  bar = love.graphics.newImage('sprites/bar.png')
+  -- ocean = love.graphics.newImage("sprites/ocean.png")
   --clouds
-  cloud_image = love.graphics.newImage('sprites/cloud1.png')
+  cloud1_image = love.graphics.newImage('sprites/cloud1.png')
+  cloud2_image = love.graphics.newImage('sprites/cloud2.png')
+  cloud3_image = love.graphics.newImage('sprites/cloud3.png')
   clouds = {
     {
       x = math.random(0, (800 - 80)/2),
-      y = math.random(0,200),
+      y = 40,
+      sprite = 1
 
     },
     {
       x = math.random(0, (800 - 80)/2),
-      y = math.random(0,200)
+      y = 10,
+      sprite = 2
     },
     {
       x = math.random(0, (800 - 80)/2),
-      y = math.random(0,200)
+      y = math.random(0,200),
+      sprite = 3
     },
     
   }
-  cloudTimer = love.timer.getTime() + 3.5
+  cloudTimer = love.timer.getTime() + 2
 
   --player spritesheet
   player_image = love.graphics.newImage('sprites/player_spritesheet.png')
@@ -66,22 +73,27 @@ function love.load()
   step = love.timer.getTime() + 2
   enemyBulletTimer = love.timer.getTime() + 1
 
+
 end
 
 function love.update(dt)
   --clouds
 
   if love.timer.getTime() >= cloudTimer then
-    cloudTimer = love.timer.getTime() + 3.5
-    table.insert(clouds, {x = math.random(0, (800 - 80)/2), y = -100})
+    cloudTimer = love.timer.getTime() + 2
+    table.insert(clouds, {x = math.random(0, (800 - 80)/2), y = -400, sprite = math.random(1,3)})
   end
 
+  
   for _, cloud in ipairs(clouds) do
     cloud.y = cloud.y + 0.5
+    print(cloud.sprite)
     if cloud.y >= 600 then
       table.remove(clouds, _)
     end
   end
+
+  -----------------------------------------------------
 
   --spawning enrmies
   currTime = love.timer.getTime()
@@ -90,6 +102,8 @@ function love.update(dt)
     step = love.timer.getTime() + 2
     table.insert(enemies, {x = math.random(0, (800 - 80)/2), y = -39, shots = 0, bulletTimer = love.timer.getTime() + math.random(0.8,1.4)})
   end
+
+  ------------------------------------------
   
   --player movement and controls
   
@@ -125,6 +139,10 @@ end
 
   player.x = player.speed + player.x
 
+  -----------------------------------------------------------------------
+
+  --player collides with enemy bullets
+
   for _, enemy_bullet in ipairs(enemy_bullets) do
     enemy_bullet.y = enemy_bullet.y + 5
     print(enemy_bullet.y)
@@ -142,7 +160,9 @@ end
     end
   end
 
-  --enemies
+  ---------------------------------------
+
+  --enemies shooting bullets
   for _, enemy in ipairs(enemies) do
     enemy.y = enemy.y + 1
 
@@ -156,7 +176,7 @@ end
     end
   end
 
-    --bullets
+    --destroying player bullets after they reach a y position of -10
     for _, bullet in ipairs(bullets) do
       bullet.y = bullet.y - bulletSpeed
       if(bullet.y < -10) then 
@@ -164,7 +184,7 @@ end
       end
     end
 
-  --check collision with bullets
+  --check enemy collision with bullets
 
   for _, bullet in ipairs(bullets) do
     for _, enemy in ipairs(enemies) do
@@ -193,12 +213,24 @@ end
 end
 
 function love.draw()
+
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
-  
+  -- love.graphics.draw(ocean,0,0)
+
+  love.graphics.setColor(1,1,1,1)
+
+  love.graphics.draw(bar, 0, 0)
+
   for _, cloud in ipairs(clouds) do
-    love.graphics.setColor(1,1,1,0.3)
-    love.graphics.draw(cloud_image, cloud.x, cloud.y)
+    love.graphics.setColor(1,1,1,0.1)
+    if cloud.sprite == 1 then
+      love.graphics.draw(cloud1_image, cloud.x, cloud.y)
+    elseif cloud.sprite == 2 then
+      love.graphics.draw(cloud2_image, cloud.x, cloud.y)
+    else
+      love.graphics.draw(cloud3_image, cloud.x, cloud.y)
+    end
   end
 
   love.graphics.setColor(1,1,1,1)
@@ -217,6 +249,8 @@ function love.draw()
   for _, enemy in ipairs(enemies) do
     enemy_animation:draw(enemy_image, enemy.x, enemy.y)
   end
+
+  -- love.graphics.draw(rainbow, 0, 0, 0, love.graphics.getDimensions())
 
 end
 
