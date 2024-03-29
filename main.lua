@@ -5,7 +5,10 @@ function love.load()
   
 
   bar = love.graphics.newImage('sprites/bar.png')
-  font = love.graphics.newFont("fonts/upheavtt.ttf", 50)
+  font = love.graphics.newImageFont("fonts/font.png",
+    " abcdefghijklmnopqrstuvwxyz" ..
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0" ..
+    "123456789.,!?-+/():;%&`'*#=[]\"")
   -- ocean = love.graphics.newImage("sprites/ocean.png")
 
 
@@ -89,14 +92,19 @@ function love.update(dt)
 
   if love.timer.getTime() >= shipTimer then
     shipTimer = love.timer.getTime() + 2
-    table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5)})
+    table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = nil})
   end
 
 
   for _, ship in ipairs(ships) do
     ship.y = ship.y + 0.5
+
+    if y > 20 and y < 300 - 20 then
+      ship.canBeDestroyed = true
+    end
   end
 
+  ----------------
 
   --clouds
 
@@ -114,13 +122,18 @@ function love.update(dt)
   end
 
   -----------------------------------------------------
-
+  
   --spawning enrmies
+
   currTime = love.timer.getTime()
 
   if currTime >= step then
-    step = love.timer.getTime() + 2
-    table.insert(enemies, {x = math.random(0, (800 - 80)/2), y = -39, shots = 0, bulletTimer = love.timer.getTime() + math.random(0.8,1.4)})
+    step = love.timer.getTime() + 1.5
+    enemyX = math.random(0, (800 - 80)/2)
+    enemyY = -39
+    id = math.random(1,3)
+    bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
+    table.insert(enemies, {x = enemyX, y = enemyY, shots = 0, id = id, bulletTimer = bulletTimer})
   end
 
   ------------------------------------------
@@ -164,6 +177,7 @@ end
   --player collides with enemy bullets
 
   for _, enemy_bullet in ipairs(enemy_bullets) do
+    
     enemy_bullet.y = enemy_bullet.y + 5
 
     if CheckCollision(player.x + 13, player.y, 22, 39, enemy_bullet.x, enemy_bullet.y, 1, 10) then
@@ -181,8 +195,9 @@ end
 
   ---------------------------------------
 
-  --enemies shooting bullets
+  --enemies shooting bullets and enemy movement
   for _, enemy in ipairs(enemies) do
+    -- enemy.x = enemy.x + 1
     enemy.y = enemy.y + 1
 
     if love.timer.getTime() > enemy.bulletTimer then
@@ -236,13 +251,12 @@ function love.draw()
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
 
-  love.graphics.setFont(font)
   -- love.graphics.draw(ocean,0,0)
-
+  
   love.graphics.setColor(1,1,1,1)
 
   love.graphics.draw(bar, 0, 0)
-
+  
   for _, ship in ipairs(ships) do
     love.graphics.setColor(0,0,0,0.5)
     love.graphics.rectangle("fill", ship.x + 7, ship.y + 10, 180,23, 3)
@@ -263,7 +277,7 @@ function love.draw()
       love.graphics.draw(cloud3_image, cloud.x, cloud.y)
     end
   end
-
+  
   love.graphics.setColor(1,1,1,1)
 
   love.graphics.setColor(0,0,0,0.4)
@@ -272,7 +286,7 @@ function love.draw()
   player_animation:draw(player_image, player.x, player.y)
   
   exp_animation:draw(exp_image, explosion.x, explosion.y)
-
+  
   
   for _,enemyBullet in ipairs(enemy_bullets) do
     love.graphics.rectangle("fill", enemyBullet.x, enemyBullet.y, enemyBullet.width, enemyBullet.height)
@@ -288,19 +302,20 @@ function love.draw()
   for _, bullet in ipairs(bullets) do
     love.graphics.rectangle("fill", bullet.x, bullet.y, bullet.width, bullet.height)
   end
-love.graphics.setColor(1,1,1,1)
-
-love.graphics.print(score, 10, 300 - 50)
-
-
+  love.graphics.setColor(1,1,1,1)
+  
+  love.graphics.setFont(font, 100)
+  love.graphics.print(score, 10, 300 - 55, 0,2)
+  
+  
   -- love.graphics.draw(rainbow, 0, 0, 0, love.graphics.getDimensions())
-
+  
 end
 
 function tablelength(T)
-    local count = 0
-    for _ in pairs(T) do count = count + 1 end
-    return count
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
 end
 
 function love.keypressed(key, scancode, isrepeat)
