@@ -6,6 +6,12 @@ function love.load()
 
   bar = love.graphics.newImage('sprites/bar.png')
   -- ocean = love.graphics.newImage("sprites/ocean.png")
+
+
+  --ships
+  ship_image = love.graphics.newImage('sprites/ship.png')
+  ships = {}
+  shipTimer = love.timer.getTime() +2
   --clouds
   cloud1_image = love.graphics.newImage('sprites/cloud1.png')
   cloud2_image = love.graphics.newImage('sprites/cloud2.png')
@@ -77,6 +83,20 @@ function love.load()
 end
 
 function love.update(dt)
+
+  -- ships
+
+  if love.timer.getTime() >= shipTimer then
+    shipTimer = love.timer.getTime() + 2
+    table.insert(ships, {x = math.random(60, 100), y = -39})
+  end
+
+
+  for _, ship in ipairs(ships) do
+    ship.y = ship.y + 0.5
+  end
+
+
   --clouds
 
   if love.timer.getTime() >= cloudTimer then
@@ -87,7 +107,6 @@ function love.update(dt)
   
   for _, cloud in ipairs(clouds) do
     cloud.y = cloud.y + 0.5
-    print(cloud.sprite)
     if cloud.y >= 600 then
       table.remove(clouds, _)
     end
@@ -145,7 +164,6 @@ end
 
   for _, enemy_bullet in ipairs(enemy_bullets) do
     enemy_bullet.y = enemy_bullet.y + 5
-    print(enemy_bullet.y)
 
     if CheckCollision(player.x + 13, player.y, 22, 39, enemy_bullet.x, enemy_bullet.y, 1, 10) then
       explosion.x = enemy_bullet.x
@@ -191,7 +209,6 @@ end
       if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
         table.remove(bullets, _)
         enemy.shots = enemy.shots + 0.5
-        -- print(enemy.shots )
 
         if enemy.shots == 2 then
           explosion.x = enemy.x
@@ -222,6 +239,17 @@ function love.draw()
 
   love.graphics.draw(bar, 0, 0)
 
+  for _, ship in ipairs(ships) do
+    love.graphics.setColor(0,0,0,0.5)
+    love.graphics.rectangle("fill", ship.x + 7, ship.y + 10, 180,22)
+    love.graphics.setColor(0.7,0.7,0.7,1)
+    love.graphics.draw(ship_image, ship.x, ship.y, 0,0.5)
+    -- love.graphics.draw(ship_image, ship.x, ship.y, 0,0.5)
+    love.graphics.setColor(1,1,1,1)
+
+  end
+  -- love.graphics.draw(ship_image,50,50)
+
   for _, cloud in ipairs(clouds) do
     love.graphics.setColor(1,1,1,0.1)
     if cloud.sprite == 1 then
@@ -234,21 +262,30 @@ function love.draw()
   end
 
   love.graphics.setColor(1,1,1,1)
-  
+
+  love.graphics.setColor(0,0,0,0.4)
+  enemy_animation:draw(player_image, player.x + 30, player.y + 30,0,0.5)
+  love.graphics.setColor(1,1,1,1)
   player_animation:draw(player_image, player.x, player.y)
+  
   exp_animation:draw(exp_image, explosion.x, explosion.y)
 
   
   for _,enemyBullet in ipairs(enemy_bullets) do
     love.graphics.rectangle("fill", enemyBullet.x, enemyBullet.y, enemyBullet.width, enemyBullet.height)
   end
+  for _, enemy in ipairs(enemies) do
+    love.graphics.setColor(0,0,0,0.4)
+    enemy_animation:draw(enemy_image, enemy.x + 30, enemy.y + 30,0,0.5)
+    love.graphics.setColor(1,1,1,1)
+    
+    enemy_animation:draw(enemy_image, enemy.x, enemy.y)
+  end
   
   for _, bullet in ipairs(bullets) do
     love.graphics.rectangle("fill", bullet.x, bullet.y, bullet.width, bullet.height)
   end
-  for _, enemy in ipairs(enemies) do
-    enemy_animation:draw(enemy_image, enemy.x, enemy.y)
-  end
+love.graphics.setColor(1,1,1,1)
 
   -- love.graphics.draw(rainbow, 0, 0, 0, love.graphics.getDimensions())
 
