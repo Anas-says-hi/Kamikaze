@@ -1,5 +1,5 @@
 anim8 = require 'libs/anim8'
-
+flux = require "libs/flux"
 function love.load()
   love.graphics.setDefaultFilter("nearest", "nearest", 1)
   
@@ -27,7 +27,7 @@ function love.load()
   ship_exp.y = 0
 
   ships = {}
-  shipTimer = love.timer.getTime() + 10
+  shipTimer = love.timer.getTime() + 0
   --clouds
   cloud1_image = love.graphics.newImage('sprites/cloud1.png')
   cloud2_image = love.graphics.newImage('sprites/cloud2.png')
@@ -90,14 +90,11 @@ function love.load()
   player.maxSpeed = 5
   player.accel = 0.5
   player.friction = 0.08
-  player.numberOfBullets = 100
-
-  bulletsShot = 0
-  bulletsLeft = player.numberOfBullets
+  player.numberOfBullets = 150
 
   player_crashing = {}
-  player_crashing.x = 0
-  player_crashing.y = 0
+  player_crashing.x = 200
+  player_crashing.y = 600
 
   currTime = love.timer.getTime()
   enemyTimerSeconds = 2
@@ -105,18 +102,43 @@ function love.load()
   enemyBulletTimer = love.timer.getTime() + 1
 
   score = 0
+  state = "playing"
+
+  kamikazeShip = {
+    x = 0,
+    y = 0,
+    width = 327/2,
+    height = 62/2,
+    index = 0,
+  }
+
+  test = false
 end
 
 function love.update(dt)
+  flux.update(dt)
+
+  if enemyTimerSeconds >= 0.3 then
+    enemyTimerSeconds = enemyTimerSeconds - 0.00004
+  end
+
+  print(enemyTimerSeconds)
   -- ships
 
+  if state == "playing" then
+    flux.to(player, 2, { y = 230 })
+    player_crashing.y = 600
+  end
+
   if love.timer.getTime() >= shipTimer then
-    shipTimer = love.timer.getTime() + 10
+    shipTimer = love.timer.getTime() + 50
     table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = false})
   end
 
   for _, ship in ipairs(ships) do
-    ship.y = ship.y + 0.5
+    if state == "playing" then
+      ship.y = ship.y + 0.5
+    end
 
     if ship.y > 20 and ship.y < 200 then
       ship.canBeDestroyed = true
@@ -128,14 +150,26 @@ function love.update(dt)
   if love.keyboard.isDown("x") then
     for _, ship in ipairs(ships) do
       if ship.canBeDestroyed then
-        ship_exp.x = ship.x
-        ship_exp.y = ship.y
-        ship_exp_animation:gotoFrame(1)
-        ship_exp_animation:resume()
-        table.remove(ships, _)
+        kamikazeShip.x = ship.x
+        kamikazeShip.y = ship.y
+        kamikazeShip.index = _
+
+        flux.to(player, 4, { y = 600 })
+        state = "kamikaze"
+        -- ship_exp.x = ship.x
+        -- ship_exp.y = ship.y
+
+        -- table.remove(ships, _)
       end
     end
   end
+
+  if test then
+    test = false
+    ship_exp_animation:gotoFrame(1)
+    ship_exp_animation:resume()
+  end
+
 
   ----------------
 
@@ -143,12 +177,16 @@ function love.update(dt)
 
   if love.timer.getTime() >= cloudTimer then
     cloudTimer = love.timer.getTime() + 2
-    table.insert(clouds, {x = math.random(0, (800 - 80)/2), y = -400, sprite = math.random(1,3)})
+    if state == "playing" then
+      table.insert(clouds, {x = math.random(0, (800 - 80)/2), y = -400, sprite = math.random(1,3)})
+    end
   end
 
   
   for _, cloud in ipairs(clouds) do
-    cloud.y = cloud.y + 0.5
+    if state == "playing" then
+      cloud.y = cloud.y + 0.5
+    end
     if cloud.y >= 600 then
       table.remove(clouds, _)
     end
@@ -166,7 +204,10 @@ function love.update(dt)
     enemyY = -39
     id = math.random(1,3)
     bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
-    table.insert(enemies, {x = enemyX, y = enemyY, shots = 0, id = id, bulletTimer = bulletTimer})
+    
+    if state == "playing" then
+      table.insert(enemies, {x = enemyX, y = enemyY, shots = 0, id = id, bulletTimer = bulletTimer})
+    end
   end
 
   ------------------------------------------
@@ -271,6 +312,31 @@ end
       end
   end
 
+
+  if state == "kamikaze" then
+    -- player_crashing.x = kamikazeShip.x + 10
+    flux.to(player_crashing, 0.9, {y = kamikazeShip.y - 200, x = kamikazeShip.x + 70 }):ease("linear"):delay(1)
+    if CheckCollision(player_crashing.x, player_crashing.y, 22/2, 39/2, kamikazeShip.x, kamikazeShip.y, kamikazeShip.width, kamikazeShip.height) then
+      -- player_crashing.x = 600
+      ship_exp.x = kamikazeShip.x
+      ship_exp.y = kamikazeShip.y
+      explosion.x = player_crashing.x - 20
+      explosion.y = player_crashing.y - 20
+      exp_animation:gotoFrame(1)
+      exp_animation:resume()
+      test = true
+      table.remove(ships, kamikazeShip.index)
+      state = "playing"
+      player.numberOfBullets = 150
+      score = score + 100
+      
+      -- player_crashing.x = 
+    -- flux.to(player_crashing, 0.000001, {y = 600 }):ease("linear")
+    end
+  end
+
+
+
   --animations
   player_animation:update(dt)
   enemy_animation:update(dt)
@@ -296,11 +362,11 @@ function love.draw()
     love.graphics.setColor(1,1,1,1)
 
     if ship.canBeDestroyed then
-      love.graphics.draw(pressX, ship.x + 100, ship.y,0, 0.5)
+      love.graphics.draw(pressX, ship.x + 100, ship.y,0, 0.3)
     end
   end
 
-  player_animation:draw(player_image, player_crashing.x, player_crashing.y)
+  player_animation:draw(player_image, player_crashing.x, player_crashing.y, 0,0.5)
 
 
   love.graphics.setColor(0.7,0.7,0.7,1)
@@ -346,7 +412,7 @@ function love.draw()
   love.graphics.setColor(1,1,1,1)
   
   love.graphics.draw(bullet_image, 330, 270 - 6)
-  love.graphics.print(bulletsLeft, 400 - 65, 260, 0,2)
+  love.graphics.print(player.numberOfBullets, 400 - 65, 260, 0,2)
 
   love.graphics.setFont(font, 100)
   love.graphics.print(score, 10, 260, 0,2)
@@ -363,10 +429,9 @@ function tablelength(T)
 end
 
 function love.keypressed(key, scancode, isrepeat)
-    if key == "e" or key == "up" then
-      if bulletsShot < player.numberOfBullets then
-        bulletsLeft = bulletsLeft - 1
-        bulletsShot = bulletsShot + 1
+    if key == "space" or key == "up" then
+      if player.numberOfBullets ~= 0 then
+        player.numberOfBullets = player.numberOfBullets - 1
         table.insert(bullets, {x = player.x +  49/2,y = player.y + 10,width = 1,height = 10})
       end
     end
