@@ -4,6 +4,10 @@ function love.load()
   love.graphics.setDefaultFilter("nearest", "nearest", 1)
   
 
+
+  --bullet
+  bullet_image = love.graphics.newImage("sprites/bullet.png")
+  ----
   bar = love.graphics.newImage('sprites/bar.png')
   pressX = love.graphics.newImage('sprites/pressX.png')
   font = love.graphics.newImageFont("fonts/font.png",
@@ -15,12 +19,15 @@ function love.load()
 
   --ships
   ship_image = love.graphics.newImage('sprites/ship.png')
-  ship_exp_image = love.graphics.newImage('sprites/explosion.png')
-  ship_exp_g = anim8.newGrid(64, 64, exp_image:getWidth(), exp_image:getHeight())
-  ship_exp_animation = anim8.newAnimation(exp_g('1-9',1), 0.07, "pauseAtEnd")
+  ship_exp_image = love.graphics.newImage('sprites/ship_destroy.png')
+  ship_exp_g = anim8.newGrid(327, 100, ship_exp_image:getWidth(), ship_exp_image:getHeight())
+  ship_exp_animation = anim8.newAnimation(ship_exp_g('1-13',1), 0.07, "pauseAtEnd")
+  ship_exp = {}
+  ship_exp.x = 0
+  ship_exp.y = 0
 
   ships = {}
-  shipTimer = love.timer.getTime() +2
+  shipTimer = love.timer.getTime() + 40
   --clouds
   cloud1_image = love.graphics.newImage('sprites/cloud1.png')
   cloud2_image = love.graphics.newImage('sprites/cloud2.png')
@@ -95,9 +102,11 @@ function love.update(dt)
   -- ships
 
   if love.timer.getTime() >= shipTimer then
-    shipTimer = love.timer.getTime() + 2
+    shipTimer = love.timer.getTime() + 40
     table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = false})
   end
+
+  print(ships[2])
 
 
   for _, ship in ipairs(ships) do
@@ -113,6 +122,10 @@ function love.update(dt)
   if love.keyboard.isDown("x") then
     for _, ship in ipairs(ships) do
       if ship.canBeDestroyed then
+        ship_exp.x = ship.x
+        ship_exp.y = ship.y
+        ship_exp_animation:gotoFrame(1)
+        ship_exp_animation:resume()
         table.remove(ships, _)
       end
     end
@@ -257,6 +270,7 @@ end
   player_animation:update(dt)
   enemy_animation:update(dt)
   exp_animation:update(dt)
+  ship_exp_animation:update(dt)
 
 end
 
@@ -264,8 +278,6 @@ function love.draw()
 
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
-
-  -- love.graphics.draw(ocean,0,0)
   
   love.graphics.setColor(1,1,1,1)
 
@@ -304,6 +316,10 @@ function love.draw()
   player_animation:draw(player_image, player.x, player.y)
   
   exp_animation:draw(exp_image, explosion.x, explosion.y)
+
+  love.graphics.setColor(0.7,0.7,0.7,1)
+  ship_exp_animation:draw(ship_exp_image,ship_exp.x,ship_exp.y, 0,0.5)
+  love.graphics.setColor(1,1,1,1)
   
   
   for _,enemyBullet in ipairs(enemy_bullets) do
