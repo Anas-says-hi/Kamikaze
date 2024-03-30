@@ -23,11 +23,11 @@ function love.load()
   ship_exp_g = anim8.newGrid(327, 100, ship_exp_image:getWidth(), ship_exp_image:getHeight())
   ship_exp_animation = anim8.newAnimation(ship_exp_g('1-13',1), 0.07, "pauseAtEnd")
   ship_exp = {}
-  ship_exp.x = 0
+  ship_exp.x = 600
   ship_exp.y = 0
 
   ships = {}
-  shipTimer = love.timer.getTime() + 40
+  shipTimer = love.timer.getTime() + 10
   --clouds
   cloud1_image = love.graphics.newImage('sprites/cloud1.png')
   cloud2_image = love.graphics.newImage('sprites/cloud2.png')
@@ -90,9 +90,18 @@ function love.load()
   player.maxSpeed = 5
   player.accel = 0.5
   player.friction = 0.08
+  player.numberOfBullets = 100
+
+  bulletsShot = 0
+  bulletsLeft = player.numberOfBullets
+
+  player_crashing = {}
+  player_crashing.x = 0
+  player_crashing.y = 0
 
   currTime = love.timer.getTime()
-  step = love.timer.getTime() + 2
+  enemyTimerSeconds = 2
+  enemyTimer = love.timer.getTime() + enemyTimerSeconds
   enemyBulletTimer = love.timer.getTime() + 1
 
   score = 0
@@ -102,12 +111,9 @@ function love.update(dt)
   -- ships
 
   if love.timer.getTime() >= shipTimer then
-    shipTimer = love.timer.getTime() + 40
+    shipTimer = love.timer.getTime() + 10
     table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = false})
   end
-
-  print(ships[2])
-
 
   for _, ship in ipairs(ships) do
     ship.y = ship.y + 0.5
@@ -154,8 +160,8 @@ function love.update(dt)
 
   currTime = love.timer.getTime()
 
-  if currTime >= step then
-    step = love.timer.getTime() + 1.5
+  if currTime >= enemyTimer then
+    enemyTimer = love.timer.getTime() + enemyTimerSeconds
     enemyX = math.random(0, (800 - 80)/2)
     enemyY = -39
     id = math.random(1,3)
@@ -219,51 +225,50 @@ end
       table.remove(enemy_bullets, _)
     end
   end
-
+  
   ---------------------------------------
-
+  
   --enemies shooting bullets and enemy movement
   for _, enemy in ipairs(enemies) do
     -- enemy.x = enemy.x + 1
     enemy.y = enemy.y + 1
-
+    
     if love.timer.getTime() > enemy.bulletTimer then
       enemy.bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
       table.insert(enemy_bullets, {x = enemy.x + 25, y = enemy.y, width = 1, height = 10})
     end
-
+    -- print(enemy.shots)
+    if enemy.shots > 2 then
+      score = score + 10
+      explosion.x = enemy.x
+      explosion.y = enemy.y
+      exp_animation:gotoFrame(1)
+      exp_animation:resume()
+      table.remove(enemies, _)
+    end
+    
     if enemy.y >= 600 then
       table.remove(enemies, _)
     end
   end
-
-    --destroying player bullets after they reach a y position of -10
-    for _, bullet in ipairs(bullets) do
-      bullet.y = bullet.y - bulletSpeed
-      if(bullet.y < -10) then 
-        table.remove(bullets, _)
-      end
-    end
-
-  --check enemy collision with bullets
-
+  
+  --destroying player bullets after they reach a y position of -10
   for _, bullet in ipairs(bullets) do
-    for _, enemy in ipairs(enemies) do
-      if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
-        table.remove(bullets, _)
-        enemy.shots = enemy.shots + 0.5
-
-        if enemy.shots == 2 then
-          score = score + 10
-          explosion.x = enemy.x
-          explosion.y = enemy.y
-          exp_animation:gotoFrame(1)
-          exp_animation:resume()
-          table.remove(enemies, _)
-        end
-
-      end
+    bullet.y = bullet.y - bulletSpeed
+    if(bullet.y < -10) then 
+      table.remove(bullets, _)
     end
+  end
+  
+    --check enemy collision with bullets
+    
+    for _, enemy in ipairs(enemies) do
+      for _, bullet in ipairs(bullets) do
+        if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
+          table.remove(bullets, _)
+          enemy.shots = enemy.shots + 1
+        end
+      end
   end
 
   --animations
@@ -295,6 +300,12 @@ function love.draw()
     end
   end
 
+  player_animation:draw(player_image, player_crashing.x, player_crashing.y)
+
+
+  love.graphics.setColor(0.7,0.7,0.7,1)
+  ship_exp_animation:draw(ship_exp_image,ship_exp.x,ship_exp.y, 0,0.5)
+  love.graphics.setColor(1,1,1,1)
   -- love.graphics.draw(ship_image,50,50)
 
   for _, cloud in ipairs(clouds) do
@@ -316,10 +327,6 @@ function love.draw()
   player_animation:draw(player_image, player.x, player.y)
   
   exp_animation:draw(exp_image, explosion.x, explosion.y)
-
-  love.graphics.setColor(0.7,0.7,0.7,1)
-  ship_exp_animation:draw(ship_exp_image,ship_exp.x,ship_exp.y, 0,0.5)
-  love.graphics.setColor(1,1,1,1)
   
   
   for _,enemyBullet in ipairs(enemy_bullets) do
@@ -338,8 +345,11 @@ function love.draw()
   end
   love.graphics.setColor(1,1,1,1)
   
+  love.graphics.draw(bullet_image, 330, 270 - 6)
+  love.graphics.print(bulletsLeft, 400 - 65, 260, 0,2)
+
   love.graphics.setFont(font, 100)
-  love.graphics.print(score, 10, 300 - 55, 0,2)
+  love.graphics.print(score, 10, 260, 0,2)
   
   
   -- love.graphics.draw(rainbow, 0, 0, 0, love.graphics.getDimensions())
@@ -354,7 +364,11 @@ end
 
 function love.keypressed(key, scancode, isrepeat)
     if key == "e" or key == "up" then
-      table.insert(bullets, {x = player.x +  49/2,y = player.y + 10,width = 1,height = 10})
+      if bulletsShot < player.numberOfBullets then
+        bulletsLeft = bulletsLeft - 1
+        bulletsShot = bulletsShot + 1
+        table.insert(bullets, {x = player.x +  49/2,y = player.y + 10,width = 1,height = 10})
+      end
     end
  end
 
