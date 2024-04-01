@@ -1,6 +1,11 @@
 anim8 = require 'libs/anim8'
 flux = require "libs/flux"
 function love.load()
+  shoot_sound = love.audio.newSource("sounds/shoot.wav", "static")
+  enemy_shoot_sound = love.audio.newSource("sounds/shoot.wav", "static")
+  enemy_shoot_sound:setPitch(0.5)
+  explosion_sound = love.audio.newSource("sounds/explosion.wav", "static")
+  hurt_sound = love.audio.newSource("sounds/explosion.wav", "static")
   love.graphics.setDefaultFilter("nearest", "nearest", 1)
   --bullet
   bullet_image = love.graphics.newImage("sprites/bullet.png")
@@ -310,24 +315,28 @@ function love.update(dt)
         player.hits = player.hits + 1
         exp_animation:gotoFrame(1)
         exp_animation:resume()
+        hurt_sound:play()  
         explosion.x = enemy_bullet.x
         explosion.y = enemy_bullet.y
         table.remove(enemy_bullets, _)
       end
-
+      
       if(enemy_bullet.y >= 600) then
         table.remove(enemy_bullets, _)
       end
     end
-
+    
     if player.hits >= 1 then
+      -- hurt_sound:play()
       player.currAnim = player_animation_2
     end
     if player.hits >= 2 then
+      
       player.currAnim = player_animation_3
     end
     if player.hits >= 3 then
       -- player.currAnim = player_animation_3
+      -- explosion_sound:play()
       state = "over"
     end
 
@@ -341,6 +350,7 @@ function love.update(dt)
       
       if love.timer.getTime() > enemy.bulletTimer then
         enemy.bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
+        enemy_shoot_sound:play()
         table.insert(enemy_bullets, {x = enemy.x + 25, y = enemy.y, width = 1, height = 10})
       end
       -- print(enemy.shots)
@@ -350,6 +360,8 @@ function love.update(dt)
         explosion.y = enemy.y
         exp_animation:gotoFrame(1)
         exp_animation:resume()
+        explosion_sound:play()
+
         table.remove(enemies, _)
       end
       
@@ -404,6 +416,8 @@ function love.update(dt)
       ship_exp_animation:resume()
       exp_animation:gotoFrame(2)
       exp_animation:resume()
+      explosion_sound:play()
+
       table.remove(ships, kamikazeShip.index)
       player.numberOfBullets = 150
       score = score + 100
@@ -527,6 +541,7 @@ function love.keypressed(key, scancode, isrepeat)
       if player.numberOfBullets ~= 0 then
         player.numberOfBullets = player.numberOfBullets - 1
         table.insert(bullets, {x = player.x +  49/2,y = player.y + 10,width = 1,height = 10})
+        shoot_sound:play()
       end
     end
  end
