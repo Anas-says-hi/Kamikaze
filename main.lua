@@ -2,9 +2,6 @@ anim8 = require 'libs/anim8'
 flux = require "libs/flux"
 function love.load()
   love.graphics.setDefaultFilter("nearest", "nearest", 1)
-  
-
-
   --bullet
   bullet_image = love.graphics.newImage("sprites/bullet.png")
   ----
@@ -56,7 +53,9 @@ function love.load()
   --player spritesheet
   player_image = love.graphics.newImage('sprites/player_spritesheet.png')
   player_g = anim8.newGrid(49, 39, player_image:getWidth(), player_image:getHeight())
-  player_animation = anim8.newAnimation(player_g('1-7',1), 0.05)
+  player_animation = anim8.newAnimation(player_g('1-7',1), 0.25)
+  player_animation_2 = anim8.newAnimation(player_g('1-7',2), 0.05)
+  player_animation_3 = anim8.newAnimation(player_g('1-7',3), 0.05)
 
   --enemy spritesheet
   enemy_image = love.graphics.newImage('sprites/enemy.png')
@@ -67,7 +66,6 @@ function love.load()
   exp_image = love.graphics.newImage('sprites/explosion.png')
   exp_g = anim8.newGrid(64, 64, exp_image:getWidth(), exp_image:getHeight())
   exp_animation = anim8.newAnimation(exp_g('1-9',1), 0.07, "pauseAtEnd")
-
 
   --bullets
   bullets = {}
@@ -91,6 +89,8 @@ function love.load()
   player.accel = 0.5
   player.friction = 0.08
   player.numberOfBullets = 150
+  player.currAnim = player_animation
+  player.hits = 0
 
   player_crashing = {}
   player_crashing.x = 200
@@ -112,233 +112,317 @@ function love.load()
     index = 0,
   }
 
-  test = false
+  defaultsSet = true
+
+end
+
+function setDefaults() 
+  ships = {}
+  shipTimer = love.timer.getTime() + 50
+  cloudTimer = love.timer.getTime() + 2
+
+  bullets = {}
+  bulletSpeed = 10
+  defaultsSet = true
+  bullets = {}
+  enemy_bullets = {}
+
+  player.x = (800/2 - 50)/2
+  player.y = 230
+  player.speed = 0
+  player.maxSpeed = 5
+  player.accel = 0.5
+  player.friction = 0.08
+  player.numberOfBullets = 150
+  player.currAnim = player_animation
+  player.hits = 0
+
+  player.currAnim = player_animation
+  cloudTimer = love.timer.getTime() + 2
+  enemyTimerSeconds = 2
+  enemyTimer = love.timer.getTime() + enemyTimerSeconds
+  enemyBulletTimer = love.timer.getTime() + 1
+  shipTimer = love.timer.getTime() + 50
+  score = 0
+  enemies = {}
+  clouds = {
+    {
+      x = math.random(0, (800 - 80)/2),
+      y = 40,
+      sprite = 1
+
+    },
+    {
+      x = math.random(0, (800 - 80)/2),
+      y = 10,
+      sprite = 2
+    },
+    {
+      x = math.random(0, (800 - 80)/2),
+      y = math.random(0,200),
+      sprite = 3
+    },
+    
+  }
+  ships = {}
 end
 
 function love.update(dt)
+
   flux.update(dt)
-
-  if enemyTimerSeconds >= 0.3 then
-    enemyTimerSeconds = enemyTimerSeconds - 0.00004
-  end
-
-  print(enemyTimerSeconds)
-  -- ships
-
   if state == "playing" then
-    flux.to(player, 2, { y = 230 })
-    player_crashing.y = 600
-  end
 
-  if love.timer.getTime() >= shipTimer then
-    shipTimer = love.timer.getTime() + 50
-    table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = false})
-  end
+    if not defaultsSet then
+      setDefaults()
+    end
 
-  for _, ship in ipairs(ships) do
+    if enemyTimerSeconds >= 0.3 then
+      enemyTimerSeconds = enemyTimerSeconds - 0.00004
+    end
+
+    print(enemyTimerSeconds)
+    -- ships
+
     if state == "playing" then
-      ship.y = ship.y + 0.5
+      flux.to(player, 2, { y = 230 })
+      player_crashing.y = 600
     end
 
-    if ship.y > 20 and ship.y < 200 then
-      ship.canBeDestroyed = true
-    else 
-      ship.canBeDestroyed = false
+    if love.timer.getTime() >= shipTimer then
+      shipTimer = love.timer.getTime() + 50
+      table.insert(ships, {x = math.random(60, 100), y = -39, rotation = math.random(-5,5), canBeDestroyed = false})
     end
-  end
 
-  if love.keyboard.isDown("x") then
     for _, ship in ipairs(ships) do
-      if ship.canBeDestroyed then
-        kamikazeShip.x = ship.x
-        kamikazeShip.y = ship.y
-        kamikazeShip.index = _
+      if state == "playing" then
+        ship.y = ship.y + 0.5
+      end
 
-        flux.to(player, 4, { y = 600 })
-        state = "kamikaze"
-        -- ship_exp.x = ship.x
-        -- ship_exp.y = ship.y
-
-        -- table.remove(ships, _)
+      if ship.y > 20 and ship.y < 200 then
+        ship.canBeDestroyed = true
+      else 
+        ship.canBeDestroyed = false
       end
     end
-  end
 
-  if test then
-    test = false
-    ship_exp_animation:gotoFrame(1)
-    ship_exp_animation:resume()
-  end
+    if love.keyboard.isDown("x") then
+      for _, ship in ipairs(ships) do
+        if ship.canBeDestroyed then
+          kamikazeShip.x = ship.x
+          kamikazeShip.y = ship.y
+          kamikazeShip.index = _
 
-
-  ----------------
-
-  --clouds
-
-  if love.timer.getTime() >= cloudTimer then
-    cloudTimer = love.timer.getTime() + 2
-    if state == "playing" then
-      table.insert(clouds, {x = math.random(0, (800 - 80)/2), y = -400, sprite = math.random(1,3)})
-    end
-  end
-
-  
-  for _, cloud in ipairs(clouds) do
-    if state == "playing" then
-      cloud.y = cloud.y + 0.5
-    end
-    if cloud.y >= 600 then
-      table.remove(clouds, _)
-    end
-  end
-
-  -----------------------------------------------------
-  
-  --spawning enrmies
-
-  currTime = love.timer.getTime()
-
-  if currTime >= enemyTimer then
-    enemyTimer = love.timer.getTime() + enemyTimerSeconds
-    enemyX = math.random(0, (800 - 80)/2)
-    enemyY = -39
-    id = math.random(1,3)
-    bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
-    
-    if state == "playing" then
-      table.insert(enemies, {x = enemyX, y = enemyY, shots = 0, id = id, bulletTimer = bulletTimer})
-    end
-  end
-
-  ------------------------------------------
-  
-  --player movement and controls
-  
-  if love.keyboard.isDown("right") or love.keyboard.isDown("d") then
-    player.speed = player.speed + player.accel
-    if(player.speed < player.maxSpeed) then
-    end
-  elseif love.keyboard.isDown("left") or love.keyboard.isDown("a") then
-    player.speed = player.speed - player.accel
-  end
-
-  if player.speed >= player.maxSpeed then
-    player.speed = player.maxSpeed
-  elseif player.speed <= -player.maxSpeed then
-    player.speed = -player.maxSpeed
-  end
-
-  if math.abs(player.speed) < player.friction then
-    player.speed = 0
-end
-
-  if player.speed < 0 then
-    player.speed = player.speed + player.friction
-  elseif player.speed > 0 then
-    player.speed = player.speed - player.friction
-  end
-
-  if player.x >= (800 - 80)/2 then
-    player.x = (800-80)/2 - 0.01
-  elseif player.x < -30/2 then
-    player.x = -30/2 -0.01
-  end
-
-  player.x = player.speed + player.x
-
-  -----------------------------------------------------------------------
-
-  --player collides with enemy bullets
-
-  for _, enemy_bullet in ipairs(enemy_bullets) do
-    
-    enemy_bullet.y = enemy_bullet.y + 5
-
-    if CheckCollision(player.x + 13, player.y, 22, 39, enemy_bullet.x, enemy_bullet.y, 1, 10) then
-      explosion.x = enemy_bullet.x
-      explosion.y = enemy_bullet.y
-      exp_animation:gotoFrame(1)
-      exp_animation:resume()
-      table.remove(enemy_bullets, _)
-    end
-
-    if(enemy_bullet.y >= 600) then
-      table.remove(enemy_bullets, _)
-    end
-  end
-  
-  ---------------------------------------
-  
-  --enemies shooting bullets and enemy movement
-  for _, enemy in ipairs(enemies) do
-    -- enemy.x = enemy.x + 1
-    enemy.y = enemy.y + 1
-    
-    if love.timer.getTime() > enemy.bulletTimer then
-      enemy.bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
-      table.insert(enemy_bullets, {x = enemy.x + 25, y = enemy.y, width = 1, height = 10})
-    end
-    -- print(enemy.shots)
-    if enemy.shots > 2 then
-      score = score + 10
-      explosion.x = enemy.x
-      explosion.y = enemy.y
-      exp_animation:gotoFrame(1)
-      exp_animation:resume()
-      table.remove(enemies, _)
-    end
-    
-    if enemy.y >= 600 then
-      table.remove(enemies, _)
-    end
-  end
-  
-  --destroying player bullets after they reach a y position of -10
-  for _, bullet in ipairs(bullets) do
-    bullet.y = bullet.y - bulletSpeed
-    if(bullet.y < -10) then 
-      table.remove(bullets, _)
-    end
-  end
-  
-    --check enemy collision with bullets
-    
-    for _, enemy in ipairs(enemies) do
-      for _, bullet in ipairs(bullets) do
-        if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
-          table.remove(bullets, _)
-          enemy.shots = enemy.shots + 1
+          state = "kamikaze"
         end
       end
+    end
+
+
+    ----------------
+
+    --clouds
+
+    if love.timer.getTime() >= cloudTimer then
+      cloudTimer = love.timer.getTime() + 2
+      if state == "playing" then
+        table.insert(clouds, {x = math.random(0, (800 - 80)/2), y = -400, sprite = math.random(1,3)})
+      end
+    end
+
+    
+    for _, cloud in ipairs(clouds) do
+      if state == "playing" then
+        cloud.y = cloud.y + 0.5
+      end
+      if cloud.y >= 600 then
+        table.remove(clouds, _)
+      end
+    end
+
+    -----------------------------------------------------
+    
+    --spawning enrmies
+
+    currTime = love.timer.getTime()
+
+    if currTime >= enemyTimer then
+      enemyTimer = love.timer.getTime() + enemyTimerSeconds
+
+      if math.random(1,2) == 2 then
+        enemyX = math.random(0, (800 - 80)/2)
+      else 
+        enemyX = player.x + math.random(10,20)
+      end
+      enemyY = -39
+      id = math.random(1,3)
+      bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
+      
+      if state == "playing" then
+        table.insert(enemies, {x = enemyX, y = enemyY, shots = 0, id = id, bulletTimer = bulletTimer})
+      end
+    end
+
+    ------------------------------------------
+    
+    --player movement and controls
+    
+    if love.keyboard.isDown("right") or love.keyboard.isDown("d") then
+      player.speed = player.speed + player.accel
+      if(player.speed < player.maxSpeed) then
+      end
+    elseif love.keyboard.isDown("left") or love.keyboard.isDown("a") then
+      player.speed = player.speed - player.accel
+    end
+
+    if player.speed >= player.maxSpeed then
+      player.speed = player.maxSpeed
+    elseif player.speed <= -player.maxSpeed then
+      player.speed = -player.maxSpeed
+    end
+
+    if math.abs(player.speed) < player.friction then
+      player.speed = 0
   end
+
+    if player.speed < 0 then
+      player.speed = player.speed + player.friction
+    elseif player.speed > 0 then
+      player.speed = player.speed - player.friction
+    end
+
+    if player.x >= (800 - 80)/2 then
+      player.x = (800-80)/2 - 0.01
+    elseif player.x < -30/2 then
+      player.x = -30/2 -0.01
+    end
+
+    player.x = player.speed + player.x
+
+    -----------------------------------------------------------------------
+
+    --player collides with enemy bullets
+
+    for _, enemy_bullet in ipairs(enemy_bullets) do
+      
+      enemy_bullet.y = enemy_bullet.y + 5
+
+      if CheckCollision(player.x + 7, player.y, 22, 39, enemy_bullet.x, enemy_bullet.y, 1, 10) then
+        player.hits = player.hits + 1
+        exp_animation:gotoFrame(1)
+        exp_animation:resume()
+        explosion.x = enemy_bullet.x
+        explosion.y = enemy_bullet.y
+        table.remove(enemy_bullets, _)
+      end
+
+      if(enemy_bullet.y >= 600) then
+        table.remove(enemy_bullets, _)
+      end
+    end
+
+    if player.hits >= 1 then
+      player.currAnim = player_animation_2
+    end
+    if player.hits >= 2 then
+      player.currAnim = player_animation_3
+    end
+    if player.hits >= 3 then
+      -- player.currAnim = player_animation_3
+      state = "over"
+    end
+
+    
+    ---------------------------------------
+    
+    --enemies shooting bullets and enemy movement
+    for _, enemy in ipairs(enemies) do
+      -- enemy.x = enemy.x + 1
+      enemy.y = enemy.y + 1
+      
+      if love.timer.getTime() > enemy.bulletTimer then
+        enemy.bulletTimer = love.timer.getTime() + math.random(0.8,1.4)
+        table.insert(enemy_bullets, {x = enemy.x + 25, y = enemy.y, width = 1, height = 10})
+      end
+      -- print(enemy.shots)
+      if enemy.shots > 2 then
+        score = score + 10
+        explosion.x = enemy.x
+        explosion.y = enemy.y
+        exp_animation:gotoFrame(1)
+        exp_animation:resume()
+        table.remove(enemies, _)
+      end
+      
+      if enemy.y >= 600 then
+        table.remove(enemies, _)
+      end
+    end
+    
+    --destroying player bullets after they reach a y position of -10
+    for _, bullet in ipairs(bullets) do
+      bullet.y = bullet.y - bulletSpeed
+      if(bullet.y < -10) then 
+        table.remove(bullets, _)
+      end
+    end
+    
+      --check enemy collision with bullets
+      
+      for _, enemy in ipairs(enemies) do
+        for _, bullet in ipairs(bullets) do
+          if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
+            table.remove(bullets, _)
+            enemy.shots = enemy.shots + 1
+          end
+        end
+    end
+  end
+
+  
 
 
   if state == "kamikaze" then
+    flux.to(player, 4, { y = 600 })
+
+    for _, enemy in ipairs(enemies) do
+      -- enemy.x = enemy.x + 1
+      enemy.y = enemy.y + 1
+      
+      if enemy.y >= 600 then
+        table.remove(enemies, _)
+      end
+    end
+    enemy_bullets = {}
     -- player_crashing.x = kamikazeShip.x + 10
-    flux.to(player_crashing, 0.9, {y = kamikazeShip.y - 200, x = kamikazeShip.x + 70 }):ease("linear"):delay(1)
+    flux.to(player_crashing, 1.3, {y = kamikazeShip.y - 200, x = kamikazeShip.x + 70 }):ease("linear"):delay(1.5)
     if CheckCollision(player_crashing.x, player_crashing.y, 22/2, 39/2, kamikazeShip.x, kamikazeShip.y, kamikazeShip.width, kamikazeShip.height) then
-      -- player_crashing.x = 600
       ship_exp.x = kamikazeShip.x
       ship_exp.y = kamikazeShip.y
       explosion.x = player_crashing.x - 20
       explosion.y = player_crashing.y - 20
-      exp_animation:gotoFrame(1)
+      ship_exp_animation:gotoFrame(1)
+      ship_exp_animation:resume()
+      exp_animation:gotoFrame(2)
       exp_animation:resume()
-      test = true
       table.remove(ships, kamikazeShip.index)
-      state = "playing"
       player.numberOfBullets = 150
       score = score + 100
+      state = "playing"
       
-      -- player_crashing.x = 
-    -- flux.to(player_crashing, 0.000001, {y = 600 }):ease("linear")
+    end
+  end
+
+  if state == "over" then
+    defaultsSet = false
+    if love.keyboard.isDown("space") then
+      state = "playing"
     end
   end
 
 
 
   --animations
-  player_animation:update(dt)
+  player.currAnim:update(dt)
   enemy_animation:update(dt)
   exp_animation:update(dt)
   ship_exp_animation:update(dt)
@@ -349,6 +433,8 @@ function love.draw()
 
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
+
+  love.graphics.rectangle("fill",player.x + 8, player.y, 22+10, 39)
   
   love.graphics.setColor(1,1,1,1)
 
@@ -388,9 +474,9 @@ function love.draw()
   love.graphics.setColor(1,1,1,1)
 
   love.graphics.setColor(0,0,0,0.4)
-  enemy_animation:draw(player_image, player.x + 30, player.y + 30,0,0.5)
+  player_animation:draw(player_image, player.x + 30, player.y + 30,0,0.5)
   love.graphics.setColor(1,1,1,1)
-  player_animation:draw(player_image, player.x, player.y)
+  player.currAnim:draw(player_image, player.x, player.y)
   
   exp_animation:draw(exp_image, explosion.x, explosion.y)
   
@@ -417,9 +503,17 @@ function love.draw()
   love.graphics.setFont(font, 100)
   love.graphics.print(score, 10, 260, 0,2)
   
-  
-  -- love.graphics.draw(rainbow, 0, 0, 0, love.graphics.getDimensions())
-  
+  --game over
+  if state == "over" then
+    love.graphics.setColor(0,0,0,0.6)
+    love.graphics.rectangle("fill",800/4 - 200/2,600/4 - 200/2,200,200,20)
+    love.graphics.setColor(1,0,0,1)
+    love.graphics.printf("DESTROYED",(800/4 - 200/2),(600/4 - 200/2) + 50,100,"center",0,2)
+    love.graphics.setColor(1,1,1,1)
+    love.graphics.printf("SCORE: " .. score,(800/4 - 200/2),(600/4 - 200/2) + 80,120,"center",0,1.7)
+    love.graphics.setColor(1,1,1,0.5)
+    love.graphics.printf("[SPACE] TO RESTART",(800/4 - 200/2),(600/4 - 200/2) + 130,200,"center",0,1)
+  end  
 end
 
 function tablelength(T)
@@ -429,7 +523,7 @@ function tablelength(T)
 end
 
 function love.keypressed(key, scancode, isrepeat)
-    if key == "space" or key == "up" then
+    if key == "space" and state == "playing" or key == "up" and state == "playing" then
       if player.numberOfBullets ~= 0 then
         player.numberOfBullets = player.numberOfBullets - 1
         table.insert(bullets, {x = player.x +  49/2,y = player.y + 10,width = 1,height = 10})
