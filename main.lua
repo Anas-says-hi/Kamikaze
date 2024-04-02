@@ -1,12 +1,15 @@
 anim8 = require 'libs/anim8'
 flux = require "libs/flux"
+
 function love.load()
+  love.graphics.setDefaultFilter("nearest", "nearest" , 1)
+  logo_image = love.graphics.newImage("sprites/logo.png")
+
   shoot_sound = love.audio.newSource("sounds/shoot.wav", "static")
   enemy_shoot_sound = love.audio.newSource("sounds/shoot.wav", "static")
   enemy_shoot_sound:setPitch(0.5)
   explosion_sound = love.audio.newSource("sounds/explosion.wav", "static")
   hurt_sound = love.audio.newSource("sounds/hitHurt.wav", "static")
-  love.graphics.setDefaultFilter("nearest", "nearest", 1)
   --bullet
   bullet_image = love.graphics.newImage("sprites/bullet.png")
   ----
@@ -29,7 +32,7 @@ function love.load()
   ship_exp.y = 0
 
   ships = {}
-  shipTimer = love.timer.getTime() + 0
+  shipTimer = love.timer.getTime() + 50
   --clouds
   cloud1_image = love.graphics.newImage('sprites/cloud1.png')
   cloud2_image = love.graphics.newImage('sprites/cloud2.png')
@@ -116,7 +119,7 @@ function love.load()
   enemyBulletTimer = love.timer.getTime() + 1
 
   score = 0
-  state = "playing"
+  state = "menu"
 
   kamikazeShip = {
     x = 0,
@@ -340,6 +343,9 @@ function love.update(dt)
       end
     end
     
+    if player.hits == 0 then
+      player.currAnim = player_animation
+    end
     if player.hits >= 1 then
       player.currAnim = player_animation_2
     end
@@ -405,9 +411,6 @@ function love.update(dt)
     end
   end
 
-  
-
-
   if state == "kamikaze" then
     flux.to(player, 4, { y = 600 })
 
@@ -436,6 +439,7 @@ function love.update(dt)
       table.remove(ships, kamikazeShip.index)
       player.numberOfBullets = 150
       score = score + 100
+      player.hits = 0
       state = "playing"
       
     end
@@ -447,7 +451,12 @@ function love.update(dt)
       state = "playing"
     end
   end
-
+  if state == "menu" then
+    defaultsSet = false
+    if love.keyboard.isDown("return") then
+      state = "playing"
+    end
+  end
 
 
   --animations
@@ -467,74 +476,78 @@ function love.draw()
   love.graphics.setColor(1,1,1,1)
 
   love.graphics.draw(bar, 0, 0)
-  
-  for _, ship in ipairs(ships) do
-    love.graphics.setColor(0,0,0,0.5)
-    love.graphics.rectangle("fill", ship.x + 7, ship.y + 10, 180,23, 3)
-    love.graphics.setColor(0.7,0.7,0.7,1)
-    love.graphics.draw(ship_image, ship.x, ship.y, 0,0.5)
-    love.graphics.setColor(1,1,1,1)
+  love.graphics.setFont(font, 100)
 
-    if ship.canBeDestroyed then
-      love.graphics.draw(pressX, ship.x + 80, ship.y,0, 0.3)
-      love.graphics.print("PRESS X TO DESTROY SHIP",ship.x + 40, ship.y + 20,0, 0.4)
-      if tutorial then
+
+  if state == "playing" or state == "kamikaze" then
+  
+    for _, ship in ipairs(ships) do
+      love.graphics.setColor(0,0,0,0.5)
+      love.graphics.rectangle("fill", ship.x + 7, ship.y + 10, 180,23, 3)
+      love.graphics.setColor(0.7,0.7,0.7,1)
+      love.graphics.draw(ship_image, ship.x, ship.y, 0,0.5)
+      love.graphics.setColor(1,1,1,1)
+
+      if ship.canBeDestroyed then
+        love.graphics.draw(pressX, ship.x + 80, ship.y,0, 0.3)
+        love.graphics.print("PRESS X TO DESTROY SHIP",ship.x + 40, ship.y + 20,0, 0.4)
+        if tutorial then
+        end
       end
     end
-  end
 
-  player_animation:draw(player_image, player_crashing.x, player_crashing.y, 0,0.5)
+    player_animation:draw(player_image, player_crashing.x, player_crashing.y, 0,0.5)
 
 
-  love.graphics.setColor(0.7,0.7,0.7,1)
-  ship_exp_animation:draw(ship_exp_image,ship_exp.x,ship_exp.y, 0,0.5)
-  love.graphics.setColor(1,1,1,1)
-  -- love.graphics.draw(ship_image,50,50)
+    love.graphics.setColor(0.7,0.7,0.7,1)
+    ship_exp_animation:draw(ship_exp_image,ship_exp.x,ship_exp.y, 0,0.5)
+    love.graphics.setColor(1,1,1,1)
+    -- love.graphics.draw(ship_image,50,50)
 
-  for _, cloud in ipairs(clouds) do
-    love.graphics.setColor(1,1,1,0.1)
-    if cloud.sprite == 1 then
-      love.graphics.draw(cloud1_image, cloud.x, cloud.y)
-    elseif cloud.sprite == 2 then
-      love.graphics.draw(cloud2_image, cloud.x, cloud.y)
-    else
-      love.graphics.draw(cloud3_image, cloud.x, cloud.y)
+    for _, cloud in ipairs(clouds) do
+      love.graphics.setColor(1,1,1,0.1)
+      if cloud.sprite == 1 then
+        love.graphics.draw(cloud1_image, cloud.x, cloud.y)
+      elseif cloud.sprite == 2 then
+        love.graphics.draw(cloud2_image, cloud.x, cloud.y)
+      else
+        love.graphics.draw(cloud3_image, cloud.x, cloud.y)
+      end
     end
-  end
-  
-  love.graphics.setColor(1,1,1,1)
+    
+    love.graphics.setColor(1,1,1,1)
 
-  love.graphics.setColor(0,0,0,0.4)
-  player_animation:draw(player_image, player.x + 30, player.y + 30,0,0.5)
-  love.graphics.setColor(1,1,1,1)
-  player.currAnim:draw(player_image, player.x, player.y)
-  
-  exp_animation:draw(exp_image, explosion.x, explosion.y)
-  
-  
-  for _,enemyBullet in ipairs(enemy_bullets) do
-    love.graphics.rectangle("fill", enemyBullet.x, enemyBullet.y, enemyBullet.width, enemyBullet.height)
-  end
-  for _, enemy in ipairs(enemies) do
     love.graphics.setColor(0,0,0,0.4)
-    enemy_animation:draw(enemy_image, enemy.x + 30, enemy.y + 30,0,0.5)
+    player_animation:draw(player_image, player.x + 30, player.y + 30,0,0.5)
+    love.graphics.setColor(1,1,1,1)
+    player.currAnim:draw(player_image, player.x, player.y)
+    
+    exp_animation:draw(exp_image, explosion.x, explosion.y)
+    
+    
+    for _,enemyBullet in ipairs(enemy_bullets) do
+      love.graphics.rectangle("fill", enemyBullet.x, enemyBullet.y, enemyBullet.width, enemyBullet.height)
+    end
+    for _, enemy in ipairs(enemies) do
+      love.graphics.setColor(0,0,0,0.4)
+      enemy_animation:draw(enemy_image, enemy.x + 30, enemy.y + 30,0,0.5)
+      love.graphics.setColor(1,1,1,1)
+      
+      enemy_animation:draw(enemy_image, enemy.x, enemy.y)
+    end
+    shoot_anim:draw(shoot_image, shot.x, shot.y)
+
+    
+    for _, bullet in ipairs(bullets) do
+      love.graphics.rectangle("fill", bullet.x, bullet.y, bullet.width, bullet.height)
+    end
     love.graphics.setColor(1,1,1,1)
     
-    enemy_animation:draw(enemy_image, enemy.x, enemy.y)
-  end
-  shoot_anim:draw(shoot_image, shot.x, shot.y)
+    love.graphics.draw(bullet_image, 330, 270 - 6)
+    love.graphics.print(player.numberOfBullets, 400 - 65, 260, 0,2)
 
-  
-  for _, bullet in ipairs(bullets) do
-    love.graphics.rectangle("fill", bullet.x, bullet.y, bullet.width, bullet.height)
+    love.graphics.print(score, 10, 260, 0,2)
   end
-  love.graphics.setColor(1,1,1,1)
-  
-  love.graphics.draw(bullet_image, 330, 270 - 6)
-  love.graphics.print(player.numberOfBullets, 400 - 65, 260, 0,2)
-
-  love.graphics.setFont(font, 100)
-  love.graphics.print(score, 10, 260, 0,2)
   
   --game over
   if state == "over" then
@@ -547,6 +560,11 @@ function love.draw()
     love.graphics.setColor(1,1,1,0.5)
     love.graphics.printf("[R] TO RESTART",(800/4 - 200/2),(600/4 - 200/2) + 130,200,"center",0,1)
   end  
+
+  if state == "menu" then
+    love.graphics.draw(logo_image, 80, 30, 0, 2)
+    love.graphics.printf("[Enter] to Play",0,200 + math.sin(love.timer.getTime()* 10),400,"center",0,1)
+  end
 end
 
 function tablelength(T)
