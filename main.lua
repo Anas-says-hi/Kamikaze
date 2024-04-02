@@ -5,7 +5,7 @@ function love.load()
   enemy_shoot_sound = love.audio.newSource("sounds/shoot.wav", "static")
   enemy_shoot_sound:setPitch(0.5)
   explosion_sound = love.audio.newSource("sounds/explosion.wav", "static")
-  hurt_sound = love.audio.newSource("sounds/explosion.wav", "static")
+  hurt_sound = love.audio.newSource("sounds/hitHurt.wav", "static")
   love.graphics.setDefaultFilter("nearest", "nearest", 1)
   --bullet
   bullet_image = love.graphics.newImage("sprites/bullet.png")
@@ -71,6 +71,15 @@ function love.load()
   exp_image = love.graphics.newImage('sprites/explosion.png')
   exp_g = anim8.newGrid(64, 64, exp_image:getWidth(), exp_image:getHeight())
   exp_animation = anim8.newAnimation(exp_g('1-9',1), 0.07, "pauseAtEnd")
+
+  shoot_image = love.graphics.newImage('sprites/shoot.png')
+  shoot_g = anim8.newGrid(32, 32, shoot_image:getWidth(), shoot_image:getHeight())
+  shoot_anim = anim8.newAnimation(shoot_g('1-5',1), 0.07, "pauseAtEnd")
+
+  shot = {
+    x= 0,
+    y= 600
+  }
 
   --bullets
   bullets = {}
@@ -170,12 +179,17 @@ function setDefaults()
     
   }
   ships = {}
+  tutorial = false
 end
 
 function love.update(dt)
 
   flux.update(dt)
   if state == "playing" then
+
+    if tutorial == false and ships[1] ~= nil then
+      tutorial = true
+    end
 
     if not defaultsSet then
       setDefaults()
@@ -311,13 +325,13 @@ function love.update(dt)
       
       enemy_bullet.y = enemy_bullet.y + 5
 
-      if CheckCollision(player.x + 7, player.y, 22, 39, enemy_bullet.x, enemy_bullet.y, 1, 10) then
+      if CheckCollision(player.x + 8, player.y, 22+10, 39, enemy_bullet.x, enemy_bullet.y, 1, 10) then
         player.hits = player.hits + 1
-        exp_animation:gotoFrame(1)
-        exp_animation:resume()
+        shoot_anim:gotoFrame(1)
+        shoot_anim:resume()
         hurt_sound:play()  
-        explosion.x = enemy_bullet.x
-        explosion.y = enemy_bullet.y
+        shot.x = enemy_bullet.x
+        shot.y = enemy_bullet.y
         table.remove(enemy_bullets, _)
       end
       
@@ -327,7 +341,6 @@ function love.update(dt)
     end
     
     if player.hits >= 1 then
-      -- hurt_sound:play()
       player.currAnim = player_animation_2
     end
     if player.hits >= 2 then
@@ -335,11 +348,8 @@ function love.update(dt)
       player.currAnim = player_animation_3
     end
     if player.hits >= 3 then
-      -- player.currAnim = player_animation_3
-      -- explosion_sound:play()
       state = "over"
     end
-
     
     ---------------------------------------
     
@@ -385,8 +395,13 @@ function love.update(dt)
           if CheckCollision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, 49, 39) then
             table.remove(bullets, _)
             enemy.shots = enemy.shots + 1
-          end
+            shot.x = bullet.x - 10
+            shot.y = bullet.y - 10
+            shoot_anim:gotoFrame(1)
+            shoot_anim:resume()
+            hurt_sound:play()
         end
+      end
     end
   end
 
@@ -406,7 +421,7 @@ function love.update(dt)
     end
     enemy_bullets = {}
     -- player_crashing.x = kamikazeShip.x + 10
-    flux.to(player_crashing, 1.3, {y = kamikazeShip.y - 200, x = kamikazeShip.x + 70 }):ease("linear"):delay(1.5)
+    flux.to(player_crashing, 1.7, {y = kamikazeShip.y - 200, x = kamikazeShip.x + 70 }):ease("linear"):delay(1.5)
     if CheckCollision(player_crashing.x, player_crashing.y, 22/2, 39/2, kamikazeShip.x, kamikazeShip.y, kamikazeShip.width, kamikazeShip.height) then
       ship_exp.x = kamikazeShip.x
       ship_exp.y = kamikazeShip.y
@@ -428,7 +443,7 @@ function love.update(dt)
 
   if state == "over" then
     defaultsSet = false
-    if love.keyboard.isDown("space") then
+    if love.keyboard.isDown("r") then
       state = "playing"
     end
   end
@@ -440,6 +455,7 @@ function love.update(dt)
   enemy_animation:update(dt)
   exp_animation:update(dt)
   ship_exp_animation:update(dt)
+  shoot_anim:update(dt)
 
 end
 
@@ -447,8 +463,6 @@ function love.draw()
 
   love.graphics.scale(2)
   love.graphics.setBackgroundColor(23/255,32/255,56/255)
-
-  love.graphics.rectangle("fill",player.x + 8, player.y, 22+10, 39)
   
   love.graphics.setColor(1,1,1,1)
 
@@ -462,7 +476,10 @@ function love.draw()
     love.graphics.setColor(1,1,1,1)
 
     if ship.canBeDestroyed then
-      love.graphics.draw(pressX, ship.x + 100, ship.y,0, 0.3)
+      love.graphics.draw(pressX, ship.x + 80, ship.y,0, 0.3)
+      love.graphics.print("PRESS X TO DESTROY SHIP",ship.x + 40, ship.y + 20,0, 0.4)
+      if tutorial then
+      end
     end
   end
 
@@ -505,6 +522,8 @@ function love.draw()
     
     enemy_animation:draw(enemy_image, enemy.x, enemy.y)
   end
+  shoot_anim:draw(shoot_image, shot.x, shot.y)
+
   
   for _, bullet in ipairs(bullets) do
     love.graphics.rectangle("fill", bullet.x, bullet.y, bullet.width, bullet.height)
@@ -526,7 +545,7 @@ function love.draw()
     love.graphics.setColor(1,1,1,1)
     love.graphics.printf("SCORE: " .. score,(800/4 - 200/2),(600/4 - 200/2) + 80,120,"center",0,1.7)
     love.graphics.setColor(1,1,1,0.5)
-    love.graphics.printf("[SPACE] TO RESTART",(800/4 - 200/2),(600/4 - 200/2) + 130,200,"center",0,1)
+    love.graphics.printf("[R] TO RESTART",(800/4 - 200/2),(600/4 - 200/2) + 130,200,"center",0,1)
   end  
 end
 
